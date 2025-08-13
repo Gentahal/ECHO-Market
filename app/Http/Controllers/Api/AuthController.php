@@ -23,7 +23,6 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         try {
-            // Validasi input
             $validatedData = $request->validate([
                 'name' => ['required', 'string', 'max:255'],
                 'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users'],
@@ -31,40 +30,33 @@ class AuthController extends Controller
                 'role' => ['nullable', 'string', 'in:superadmin'],
             ]);
 
-            // Mulai database transaction
             DB::beginTransaction();
 
-            // Buat user
             $user = User::create([
                 'name' => $validatedData['name'],
                 'email' => $validatedData['email'],
                 'password' => Hash::make($validatedData['password']),
-                'role' => $validatedData['role'] ?? 'superadmin', // Default ke 'user' bukan 'superadmin'
+                'role' => $validatedData['role'] ?? 'superadmin', 
             ]);
 
-            // Buat token
             $token = $user->createToken('auth_token')->plainTextToken;
 
-            // Commit transaction jika semua berhasil
             DB::commit();
 
             return response()->json([
                 'message' => 'Registrasi berhasil',
                 'access_token' => $token,
                 'token_type' => 'Bearer',
-                'user' => $user->makeHidden(['password']) // Sembunyikan password dari response
+                'user' => $user->makeHidden(['password']) 
             ], 201);
         } catch (ValidationException $e) {
-            // Tangkap error validasi
             return response()->json([
                 'message' => 'Validasi gagal',
                 'errors' => $e->validator->errors()
             ], 422);
         } catch (QueryException $e) {
-            // Rollback transaction jika ada error database
             DB::rollBack();
 
-            // Cek jika error karena duplikat email
             if (str_contains($e->getMessage(), 'Duplicate entry')) {
                 return response()->json([
                     'message' => 'Email sudah terdaftar',
@@ -77,7 +69,6 @@ class AuthController extends Controller
                 'error' => env('APP_DEBUG') ? $e->getMessage() : 'Internal Server Error'
             ], 500);
         } catch (\Exception $e) {
-            // Rollback transaction jika ada error lain
             DB::rollBack();
 
             return response()->json([
@@ -105,7 +96,6 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // Hapus token lama jika ada (opsional)
         $user->tokens()->delete();
 
         $token = $user->createToken('auth_token')->plainTextToken;
