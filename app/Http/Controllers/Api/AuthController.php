@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
+use Laravel\Socialite\Facades\Socialite;
+
 
 class AuthController extends Controller
 {
@@ -36,7 +38,7 @@ class AuthController extends Controller
                 'name' => $validatedData['name'],
                 'email' => $validatedData['email'],
                 'password' => Hash::make($validatedData['password']),
-                'role' => $validatedData['role'] ?? 'superadmin', 
+                'role' => $validatedData['role'] ?? 'superadmin',
             ]);
 
             $token = $user->createToken('auth_token')->plainTextToken;
@@ -47,7 +49,7 @@ class AuthController extends Controller
                 'message' => 'Registrasi berhasil',
                 'access_token' => $token,
                 'token_type' => 'Bearer',
-                'user' => $user->makeHidden(['password']) 
+                'user' => $user->makeHidden(['password'])
             ], 201);
         } catch (ValidationException $e) {
             return response()->json([
@@ -126,5 +128,62 @@ class AuthController extends Controller
     public function user(Request $request)
     {
         return response()->json($request->user());
+    }
+
+    public function redirectToGoogle()
+    {
+        return Socialite::driver('google')->stateless()->redirect();
+    }
+
+    public function handleGoogleCallback()
+    {
+        $googleUser = Socialite::driver('google')->stateless()->user();
+
+        $user = User::firstOrCreate(
+            ['email' => $googleUser->getEmail()],
+            [
+                'name' => $googleUser->getName(),
+                'password' => bcrypt(str()->random(16))
+            ]
+        );
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Login via Google berhasil',
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+            'user' => $user
+        ]);
+    }
+
+    public function redirectToFacebook()
+    {
+        return Socialite::driver('facebook')->stateless()->redirect();
+    }
+
+    public function handleFacebookCallback()
+    {
+        $facebookUser = Socialite::driver('facebook')
+            ->stateless()
+            ->scopes(['public_profile', 'email'])
+            ->user();
+            
+        $user = User::firstOrCreate(
+            ['email' => $facebookUser->getEmail()],
+            [
+                'name' => $facebookUser->getName(),
+                'password' => bcrypt(str()->random(16))
+            ]
+        );
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Login via Facebook berhasil',
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+            'user' => $user
+        ]);
     }
 }
