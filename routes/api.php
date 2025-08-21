@@ -27,6 +27,7 @@ Route::get('/auth/facebook/redirect', [AuthController::class, 'redirectToFaceboo
 Route::get('/auth/facebook/callback', [AuthController::class, 'handleFacebookCallback']);
 
 Route::apiResource('tutorials', \App\Http\Controllers\Api\TutorialController::class);
+Route::apiResource('reviews', \App\Http\Controllers\Api\ReviewController::class);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
