@@ -32,6 +32,9 @@ Route::apiResource('reviews', \App\Http\Controllers\Api\ReviewController::class)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
+
+    Route::apiResource('threads', \App\Http\Controllers\Api\ThreadsController::class);
+    Route::post('/threads/{thread}/comments', [\App\Http\Controllers\Api\CommentsController::class, 'store']);
 });
 
 Route::apiResource('/products', ProductController::class);
