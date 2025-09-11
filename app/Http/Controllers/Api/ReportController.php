@@ -12,7 +12,10 @@ class ReportController extends Controller
      */
     public function index()
     {
-        //
+        return response()->json([
+            'success' => true,
+            'data'    => []
+        ]);
     }
 
     /**
@@ -20,7 +23,7 @@ class ReportController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        
     }
 
     /**

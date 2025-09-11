@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Threads;
-use Dotenv\Exception\ValidationException;
+use Illuminate\Validation\ValidationException;
 use Exception;
 use Illuminate\Http\Request;
 
