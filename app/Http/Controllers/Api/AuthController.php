@@ -13,12 +13,8 @@ use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
 
-
 class AuthController extends Controller
 {
-    /**
-     * Register user baru
-     */
     /**
      * Register user baru
      */
@@ -29,7 +25,7 @@ class AuthController extends Controller
                 'name' => ['required', 'string', 'max:255'],
                 'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users'],
                 'password' => ['required', 'confirmed', Rules\Password::defaults()],
-                'role' => ['nullable', 'string', 'in:superadmin'],
+                'role' => ['nullable', 'string', 'in:superadmin,member,customer'],
             ]);
 
             DB::beginTransaction();
@@ -38,7 +34,7 @@ class AuthController extends Controller
                 'name' => $validatedData['name'],
                 'email' => $validatedData['email'],
                 'password' => Hash::make($validatedData['password']),
-                'role' => $validatedData['role'] ?? 'superadmin',
+                'role' => $validatedData['role'] ?? 'customer', // Default ke 'customer'
             ]);
 
             $token = $user->createToken('auth_token')->plainTextToken;
@@ -106,7 +102,7 @@ class AuthController extends Controller
             'message' => 'Login berhasil',
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'user' => $user
+            'user' => $user->makeHidden(['password'])
         ]);
     }
 
@@ -127,14 +123,20 @@ class AuthController extends Controller
      */
     public function user(Request $request)
     {
-        return response()->json($request->user());
+        return response()->json($request->user()->makeHidden(['password']));
     }
 
+    /**
+     * Redirect ke Google untuk OAuth
+     */
     public function redirectToGoogle()
     {
         return Socialite::driver('google')->stateless()->redirect();
     }
 
+    /**
+     * Handle Google callback
+     */
     public function handleGoogleCallback()
     {
         $googleUser = Socialite::driver('google')->stateless()->user();
@@ -143,25 +145,33 @@ class AuthController extends Controller
             ['email' => $googleUser->getEmail()],
             [
                 'name' => $googleUser->getName(),
-                'password' => bcrypt(str()->random(16))
+                'password' => bcrypt(str()->random(16)),
+                'role' => 'customer' // Default role untuk OAuth
             ]
         );
 
+        $user->tokens()->delete();
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'message' => 'Login via Google berhasil',
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'user' => $user
+            'user' => $user->makeHidden(['password'])
         ]);
     }
 
+    /**
+     * Redirect ke Facebook untuk OAuth
+     */
     public function redirectToFacebook()
     {
         return Socialite::driver('facebook')->stateless()->redirect();
     }
 
+    /**
+     * Handle Facebook callback
+     */
     public function handleFacebookCallback()
     {
         $facebookUser = Socialite::driver('facebook')
@@ -173,17 +183,19 @@ class AuthController extends Controller
             ['email' => $facebookUser->getEmail()],
             [
                 'name' => $facebookUser->getName(),
-                'password' => bcrypt(str()->random(16))
+                'password' => bcrypt(str()->random(16)),
+                'role' => 'customer' // Default role untuk OAuth
             ]
         );
 
+        $user->tokens()->delete();
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'message' => 'Login via Facebook berhasil',
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'user' => $user
+            'user' => $user->makeHidden(['password'])
         ]);
     }
 }
